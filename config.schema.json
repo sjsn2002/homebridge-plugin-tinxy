@@ -1,0 +1,40 @@
+{
+  "pluginAlias": "HomebridgeTinxy",
+  "pluginType": "platform",
+  "singular": true,
+  "schema": {
+    "type": "object",
+    "properties": {
+      "name": {
+        "title": "Name",
+        "type": "string",
+        "required": true
+      },
+      "apiToken": {
+        "title": "API Token",
+        "type": "string",
+        "required": true
+      },
+      "devices": {
+        "type": "array",
+        "title": "Devices",
+        "items": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "title": "Device ID",
+              "type": "string",
+              "required": true
+            },
+            "name": {
+              "title": "Device Name",
+              "type": "string",
+              "required": true
+            }
+          }
+        }
+      }
+    },
+    "required": ["name", "apiToken", "devices"]
+  }
+}
