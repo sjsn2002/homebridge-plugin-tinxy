@@ -1,0 +1,2 @@
+# homebridge-tinxy-plugin
+ 
