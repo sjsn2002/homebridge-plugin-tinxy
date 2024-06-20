@@ -11,6 +11,7 @@ class HomebridgeTinxyPlatform {
     this.api = api;
     this.accessoriesList = [];
     this.cachedAccessories = new Map();
+    this.debug = config.debug || false;
 
     if (!this.config.apiToken) {
       this.log.error('API Token not provided.');
@@ -25,7 +26,7 @@ class HomebridgeTinxyPlatform {
   }
 
   configureAccessory(accessory) {
-    this.log(`Configuring cached accessory: ${accessory.displayName}`);
+    if (this.debug) this.log(`Configuring cached accessory: ${accessory.displayName}`);
     this.cachedAccessories.set(accessory.UUID, accessory);
   }
 
@@ -36,24 +37,23 @@ class HomebridgeTinxyPlatform {
       });
 
       const devices = response.data;
-      this.log(`Received devices: ${JSON.stringify(devices)}`);
+
+      if (this.debug) this.log(`Received devices: ${JSON.stringify(devices)}`);
 
       devices.forEach(device => {
-        const accessory = new TinxyAccessory(this.log, device, this.api, this.config.apiToken, this.cachedAccessories);
+        const accessory = new TinxyAccessory(this.log, device, this.api, this.config.apiToken, this.cachedAccessories, this.debug);
         const platformAccessories = accessory.getAccessories();
         platformAccessories.forEach(platformAccessory => {
           if (this.cachedAccessories.has(platformAccessory.UUID)) {
-            this.log(`Restoring cached accessory: ${platformAccessory.displayName}`);
             this.api.updatePlatformAccessories([platformAccessory]);
           } else {
-            this.log(`Registering new accessory: ${platformAccessory.displayName}`);
             this.accessoriesList.push(platformAccessory);
             this.api.registerPlatformAccessories('homebridge-plugin-tinxy', 'HomebridgeTinxyPlatform', [platformAccessory]);
           }
         });
       });
 
-      this.log(`Discovered ${devices.length} devices.`);
+      if (this.debug) this.log(`Discovered ${devices.length} devices.`);
     } catch (error) {
       this.log('Failed to discover devices:', error);
     }
@@ -66,14 +66,17 @@ class HomebridgeTinxyPlatform {
   startStatusUpdates() {
     setInterval(() => {
       this.cachedAccessories.forEach(accessory => {
-        accessory.getService(this.api.hap.Service.Switch).getCharacteristic(this.api.hap.Characteristic.On).getValue();
+        const service = accessory.getService(this.api.hap.Service.Switch);
+        if (service) {
+          service.getCharacteristic(this.api.hap.Characteristic.On).getValue();
+        }
       });
     }, 3000); // 3 seconds
   }
 }
 
 class TinxyAccessory {
-  constructor(log, deviceConfig, api, apiToken, cachedAccessories) {
+  constructor(log, deviceConfig, api, apiToken, cachedAccessories, debug) {
     this.log = log;
     this.deviceConfig = deviceConfig;
     this.api = api;
@@ -81,6 +84,7 @@ class TinxyAccessory {
     this.name = deviceConfig.name;
     this.accessories = [];
     this.cachedAccessories = cachedAccessories;
+    this.debug = debug;
 
     if (!deviceConfig._id) {
       this.log.error('Device ID is missing:', deviceConfig);
@@ -123,7 +127,7 @@ class TinxyAccessory {
           'Authorization': `Bearer ${this.apiToken}`
         }
       });
-      this.log(`Set ${this.name} - Switch ${switchIndex + 1} to ${value ? 'on' : 'off'}`);
+      if (this.debug) this.log(`Set ${this.name} - Switch ${switchIndex + 1} to ${value ? 'on' : 'off'}`);
       callback(null);
     } catch (error) {
       this.log(`Failed to set ${this.name} - Switch ${switchIndex + 1} to ${value ? 'on' : 'off'}: ${error}`);
@@ -141,7 +145,6 @@ class TinxyAccessory {
         }
       });
       const state = response.data.state === 1;
-      this.log(`Status of ${this.name} - Switch ${switchIndex + 1}: ${state ? 'on' : 'off'}`);
       callback(null, state);
     } catch (error) {
       this.log(`Failed to get status of ${this.name} - Switch ${switchIndex + 1}: ${error}`);

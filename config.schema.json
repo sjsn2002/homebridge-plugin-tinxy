@@ -21,6 +21,11 @@
         "type": "string",
         "default": "https://backend.tinxy.in/v2/devices",
         "required": true
+      },
+      "debug": {
+        "title": "Enable Debug Logging",
+        "type": "boolean",
+        "default": false
       }
     },
     "required": ["name", "apiToken", "apiBaseUrl"]
