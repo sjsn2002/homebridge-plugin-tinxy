@@ -1,4 +1,6 @@
 const axios = require('axios');
+const fs = require('fs');
+const path = require('path');
 
 module.exports = (api) => {
   api.registerPlatform('HomebridgeTinxyPlatform', HomebridgeTinxyPlatform);
@@ -12,8 +14,7 @@ class HomebridgeTinxyPlatform {
     this.accessoriesList = [];
     this.cachedAccessories = new Map();
 
-    this.primaryEndpoint = 'https://ha-backend.tinxy.in/v2/devices';
-    this.secondaryEndpoint = 'https://backend.tinxy.in/v2/devices';
+    this.endpoint = this.config.apiBaseUrl || 'https://backend.tinxy.in/v2/devices';
 
     if (!this.config.apiToken) {
       this.log.error('API Token not provided.');
@@ -34,14 +35,9 @@ class HomebridgeTinxyPlatform {
 
   async discoverDevices() {
     try {
-      const devices = await this.fetchDevices(this.primaryEndpoint);
+      const devices = await this.fetchDevices(this.endpoint);
       if (!devices) {
-        this.log('Primary endpoint failed, trying secondary endpoint...');
-        devices = await this.fetchDevices(this.secondaryEndpoint);
-      }
-
-      if (!devices) {
-        throw new Error('Failed to fetch devices from both endpoints');
+        throw new Error('Failed to fetch devices from endpoint');
       }
 
       this.log(`Received devices: ${JSON.stringify(devices)}`);
@@ -61,6 +57,7 @@ class HomebridgeTinxyPlatform {
         });
       });
 
+      this.updateConfig(devices);
       this.log(`Discovered ${devices.length} devices.`);
     } catch (error) {
       this.log('Failed to discover devices:', error);
@@ -77,6 +74,24 @@ class HomebridgeTinxyPlatform {
       this.log(`Failed to fetch devices from ${endpoint}:`, error);
       return null;
     }
+  }
+
+  updateConfig(devices) {
+    const configPath = path.join(this.api.user.storagePath(), 'config.json');
+    const config = JSON.parse(fs.readFileSync(configPath));
+
+    config.platforms = config.platforms.map(platform => {
+      if (platform.platform === 'HomebridgeTinxyPlatform') {
+        platform.devices = devices.map(device => ({
+          id: device._id,
+          name: device.name
+        }));
+      }
+      return platform;
+    });
+
+    fs.writeFileSync(configPath, JSON.stringify(config, null, 4));
+    this.log('Updated config.json with discovered devices.');
   }
 
   accessories(callback) {
@@ -135,7 +150,7 @@ class TinxyAccessory {
 
   async setOn(value, callback, switchIndex) {
     try {
-      await axios.post(`https://ha-backend.tinxy.in/v2/devices/${this.deviceConfig._id}/toggle`, {
+      await axios.post(`https://backend.tinxy.in/v2/devices/${this.deviceConfig._id}/toggle`, {
         request: { state: value ? 1 : 0 },
         deviceNumber: switchIndex + 1 // Assuming deviceNumber starts at 1, adjust if necessary
       }, {
@@ -154,7 +169,7 @@ class TinxyAccessory {
 
   async getStatus(callback, switchIndex) {
     try {
-      const response = await axios.get(`https://ha-backend.tinxy.in/v2/devices/${this.deviceConfig._id}/state`, {
+      const response = await axios.get(`https://backend.tinxy.in/v2/devices/${this.deviceConfig._id}/state`, {
         params: { deviceNumber: switchIndex + 1 },
         headers: {
           'Content-Type': 'application/json',
