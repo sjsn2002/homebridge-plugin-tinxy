@@ -8,6 +8,7 @@
       "name": {
         "title": "Name",
         "type": "string",
+        "default": "Tinxy",
         "required": true
       },
       "apiToken": {
@@ -22,6 +23,6 @@
         "required": true
       }
     },
-    "required": ["name", "apiToken"]
+    "required": ["name", "apiToken", "apiBaseUrl"]
   }
 }

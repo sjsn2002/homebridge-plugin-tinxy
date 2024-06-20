@@ -1,6 +1,4 @@
 const axios = require('axios');
-const fs = require('fs');
-const path = require('path');
 
 module.exports = (api) => {
   api.registerPlatform('HomebridgeTinxyPlatform', HomebridgeTinxyPlatform);
@@ -13,8 +11,6 @@ class HomebridgeTinxyPlatform {
     this.api = api;
     this.accessoriesList = [];
     this.cachedAccessories = new Map();
-
-    this.endpoint = this.config.apiBaseUrl || 'https://backend.tinxy.in/v2/devices';
 
     if (!this.config.apiToken) {
       this.log.error('API Token not provided.');
@@ -35,15 +31,15 @@ class HomebridgeTinxyPlatform {
 
   async discoverDevices() {
     try {
-      const devices = await this.fetchDevices(this.endpoint);
-      if (!devices) {
-        throw new Error('Failed to fetch devices from endpoint');
-      }
+      const response = await axios.get(this.config.apiBaseUrl, {
+        headers: { 'Authorization': `Bearer ${this.config.apiToken}` }
+      });
 
+      const devices = response.data;
       this.log(`Received devices: ${JSON.stringify(devices)}`);
 
       devices.forEach(device => {
-        const accessory = new TinxyAccessory(this.log, device, this.api, this.config.apiToken);
+        const accessory = new TinxyAccessory(this.log, device, this.api, this.config.apiToken, this.cachedAccessories);
         const platformAccessories = accessory.getAccessories();
         platformAccessories.forEach(platformAccessory => {
           if (this.cachedAccessories.has(platformAccessory.UUID)) {
@@ -57,41 +53,10 @@ class HomebridgeTinxyPlatform {
         });
       });
 
-      this.updateConfig(devices);
       this.log(`Discovered ${devices.length} devices.`);
     } catch (error) {
       this.log('Failed to discover devices:', error);
     }
-  }
-
-  async fetchDevices(endpoint) {
-    try {
-      const response = await axios.get(endpoint, {
-        headers: { 'Authorization': `Bearer ${this.config.apiToken}` }
-      });
-      return response.data;
-    } catch (error) {
-      this.log(`Failed to fetch devices from ${endpoint}:`, error);
-      return null;
-    }
-  }
-
-  updateConfig(devices) {
-    const configPath = path.join(this.api.user.storagePath(), 'config.json');
-    const config = JSON.parse(fs.readFileSync(configPath));
-
-    config.platforms = config.platforms.map(platform => {
-      if (platform.platform === 'HomebridgeTinxyPlatform') {
-        platform.devices = devices.map(device => ({
-          id: device._id,
-          name: device.name
-        }));
-      }
-      return platform;
-    });
-
-    fs.writeFileSync(configPath, JSON.stringify(config, null, 4));
-    this.log('Updated config.json with discovered devices.');
   }
 
   accessories(callback) {
@@ -101,22 +66,21 @@ class HomebridgeTinxyPlatform {
   startStatusUpdates() {
     setInterval(() => {
       this.cachedAccessories.forEach(accessory => {
-        accessory.services.forEach(service => {
-          service.getCharacteristic(this.api.hap.Characteristic.On).getValue();
-        });
+        accessory.getService(this.api.hap.Service.Switch).getCharacteristic(this.api.hap.Characteristic.On).getValue();
       });
     }, 3000); // 3 seconds
   }
 }
 
 class TinxyAccessory {
-  constructor(log, deviceConfig, api, apiToken) {
+  constructor(log, deviceConfig, api, apiToken, cachedAccessories) {
     this.log = log;
     this.deviceConfig = deviceConfig;
     this.api = api;
     this.apiToken = apiToken;
     this.name = deviceConfig.name;
     this.accessories = [];
+    this.cachedAccessories = cachedAccessories;
 
     if (!deviceConfig._id) {
       this.log.error('Device ID is missing:', deviceConfig);
