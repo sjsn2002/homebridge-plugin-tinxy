@@ -5,12 +5,6 @@
   "schema": {
     "type": "object",
     "properties": {
-      "platform": {
-        "title": "Platform",
-        "type": "string",
-        "default": "HomebridgeTinxyPlatform",
-        "required": true
-      },
       "name": {
         "title": "Name",
         "type": "string",
@@ -21,18 +15,26 @@
         "type": "string",
         "required": true
       },
-      "apiBaseUrl": {
-        "title": "API Base URL",
-        "type": "string",
-        "default": "https://backend.tinxy.in/v2/devices",
-        "required": true
-      },
-      "debug": {
-        "title": "Enable Debug Logging",
-        "type": "boolean",
-        "default": false
+      "devices": {
+        "type": "array",
+        "title": "Devices",
+        "items": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "title": "Device ID",
+              "type": "string",
+              "required": true
+            },
+            "name": {
+              "title": "Device Name",
+              "type": "string",
+              "required": true
+            }
+          }
+        }
       }
     },
-    "required": ["platform", "name", "apiToken", "apiBaseUrl"]
+    "required": ["name", "apiToken", "devices"]
   }
 }
