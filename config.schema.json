@@ -1,14 +1,19 @@
 {
-  "pluginAlias": "HomebridgeTinxy",
+  "pluginAlias": "HomebridgeTinxyPlatform",
   "pluginType": "platform",
   "singular": true,
   "schema": {
     "type": "object",
     "properties": {
+      "platform": {
+        "title": "Platform",
+        "type": "string",
+        "default": "HomebridgeTinxyPlatform",
+        "required": true
+      },
       "name": {
         "title": "Name",
         "type": "string",
-        "default": "Tinxy",
         "required": true
       },
       "apiToken": {
@@ -19,15 +24,44 @@
       "apiBaseUrl": {
         "title": "API Base URL",
         "type": "string",
-        "default": "https://ha-backend.tinxy.in/v2/devices",
+        "default": "https://backend.tinxy.in/v2/devices",
         "required": true
       },
       "debug": {
         "title": "Enable Debug Logging",
         "type": "boolean",
         "default": false
+      },
+      "devices": {
+        "title": "Cached Devices",
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "title": "Device ID",
+              "type": "string",
+              "required": true
+            },
+            "name": {
+              "title": "Device Name",
+              "type": "string",
+              "required": true
+            },
+            "switch_type": {
+              "title": "Switch Type",
+              "type": "string",
+              "required": true
+            },
+            "device_type": {
+              "title": "Device Type",
+              "type": "string",
+              "required": true
+            }
+          }
+        }
       }
     },
-    "required": ["name", "apiToken", "apiBaseUrl"]
+    "required": ["platform", "name", "apiToken", "apiBaseUrl"]
   }
 }
