@@ -31,35 +31,6 @@
         "title": "Enable Debug Logging",
         "type": "boolean",
         "default": false
-      },
-      "devices": {
-        "title": "Cached Devices",
-        "type": "array",
-        "items": {
-          "type": "object",
-          "properties": {
-            "id": {
-              "title": "Device ID",
-              "type": "string",
-              "required": true
-            },
-            "name": {
-              "title": "Device Name",
-              "type": "string",
-              "required": true
-            },
-            "switch_type": {
-              "title": "Switch Type",
-              "type": "string",
-              "required": true
-            },
-            "device_type": {
-              "title": "Device Type",
-              "type": "string",
-              "required": true
-            }
-          }
-        }
       }
     },
     "required": ["platform", "name", "apiToken", "apiBaseUrl"]

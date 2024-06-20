@@ -42,8 +42,6 @@ class HomebridgeTinxyPlatform {
 
       if (this.debug) this.log(`Received devices: ${JSON.stringify(devices)}`);
 
-      const cachedDevices = [];
-
       devices.forEach(device => {
         const accessory = new TinxyAccessory(this.log, device, this.api, this.config.apiToken, this.cachedAccessories, this.debug);
         const platformAccessories = accessory.getAccessories();
@@ -54,43 +52,13 @@ class HomebridgeTinxyPlatform {
             this.accessoriesList.push(platformAccessory);
             this.api.registerPlatformAccessories('homebridge-plugin-tinxy', 'HomebridgeTinxyPlatform', [platformAccessory]);
           }
-
-          // Add device to cache
-          cachedDevices.push({
-            id: device._id,
-            name: device.name,
-            switch_type: device.switchType,
-            device_type: device.deviceTypes.length > 0 ? device.deviceTypes[0] : 'unknown',
-            uuid: platformAccessory.UUID
-          });
         });
       });
-
-      // Save cached devices to config
-      this.saveCachedDevices(cachedDevices);
 
       if (this.debug) this.log(`Discovered ${devices.length} devices.`);
     } catch (error) {
       this.log('Failed to discover devices:', error);
     }
-  }
-
-  saveCachedDevices(devices) {
-    const configPath = path.join(this.api.user.storagePath(), 'config.json');
-    const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
-
-    // Update the devices in the config
-    config.platforms = config.platforms.map(platform => {
-      if (platform.platform === 'HomebridgeTinxyPlatform') {
-        platform.devices = devices;
-      }
-      return platform;
-    });
-
-    // Save the updated config
-    fs.writeFileSync(configPath, JSON.stringify(config, null, 2), 'utf8');
-
-    if (this.debug) this.log('Cached devices updated in config.json');
   }
 
   accessories(callback) {
