@@ -66,7 +66,9 @@ class HomebridgeTinxyPlatform {
   startStatusUpdates() {
     setInterval(() => {
       this.cachedAccessories.forEach(accessory => {
-        accessory.getService(this.api.hap.Service.Switch).getCharacteristic(this.api.hap.Characteristic.On).getValue();
+        accessory.services.forEach(service => {
+          service.getCharacteristic(this.api.hap.Characteristic.On).getValue();
+        });
       });
     }, 3000); // 3 seconds
   }
@@ -88,16 +90,18 @@ class TinxyAccessory {
 
     if (deviceConfig.devices && deviceConfig.devices.length > 0) {
       deviceConfig.devices.forEach((switchName, index) => {
-        const switchAccessory = new this.api.platformAccessory(`${this.name} - ${switchName}`, this.api.hap.uuid.generate(`${deviceConfig._id}-${index}`));
-        const service = switchAccessory.addService(this.api.hap.Service.Switch, switchName);
+        const uuid = this.api.hap.uuid.generate(`${deviceConfig._id}-${index}`);
+        const switchAccessory = this.cachedAccessories.get(uuid) || new this.api.platformAccessory(`${this.name} - ${switchName}`, uuid);
+        const service = switchAccessory.getService(switchName) || switchAccessory.addService(this.api.hap.Service.Switch, switchName);
         service.getCharacteristic(this.api.hap.Characteristic.On)
           .on('set', (value, callback) => this.setOn(value, callback, index))
           .on('get', callback => this.getStatus(callback, index));
         this.accessories.push(switchAccessory);
       });
     } else {
-      const singleSwitchAccessory = new this.api.platformAccessory(this.name, this.api.hap.uuid.generate(deviceConfig._id));
-      const service = singleSwitchAccessory.addService(this.api.hap.Service.Switch, this.name);
+      const uuid = this.api.hap.uuid.generate(deviceConfig._id);
+      const singleSwitchAccessory = this.cachedAccessories.get(uuid) || new this.api.platformAccessory(this.name, uuid);
+      const service = singleSwitchAccessory.getService(this.name) || singleSwitchAccessory.addService(this.api.hap.Service.Switch, this.name);
       service.getCharacteristic(this.api.hap.Characteristic.On)
         .on('set', (value, callback) => this.setOn(value, callback, 0))
         .on('get', callback => this.getStatus(callback, 0));
@@ -146,4 +150,3 @@ class TinxyAccessory {
     }
   }
 }
-
