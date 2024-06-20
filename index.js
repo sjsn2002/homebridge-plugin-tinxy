@@ -12,6 +12,9 @@ class HomebridgeTinxyPlatform {
     this.accessoriesList = [];
     this.cachedAccessories = new Map();
 
+    this.primaryEndpoint = 'https://ha-backend.tinxy.in/v2/devices';
+    this.secondaryEndpoint = 'https://backend.tinxy.in/v2/devices';
+
     if (!this.config.apiToken) {
       this.log.error('API Token not provided.');
       return;
@@ -31,11 +34,16 @@ class HomebridgeTinxyPlatform {
 
   async discoverDevices() {
     try {
-      const response = await axios.get('https://ha-backend.tinxy.in/v2/devices', {
-        headers: { 'Authorization': `Bearer ${this.config.apiToken}` }
-      });
+      const devices = await this.fetchDevices(this.primaryEndpoint);
+      if (!devices) {
+        this.log('Primary endpoint failed, trying secondary endpoint...');
+        devices = await this.fetchDevices(this.secondaryEndpoint);
+      }
 
-      const devices = response.data;
+      if (!devices) {
+        throw new Error('Failed to fetch devices from both endpoints');
+      }
+
       this.log(`Received devices: ${JSON.stringify(devices)}`);
 
       devices.forEach(device => {
@@ -56,6 +64,18 @@ class HomebridgeTinxyPlatform {
       this.log(`Discovered ${devices.length} devices.`);
     } catch (error) {
       this.log('Failed to discover devices:', error);
+    }
+  }
+
+  async fetchDevices(endpoint) {
+    try {
+      const response = await axios.get(endpoint, {
+        headers: { 'Authorization': `Bearer ${this.config.apiToken}` }
+      });
+      return response.data;
+    } catch (error) {
+      this.log(`Failed to fetch devices from ${endpoint}:`, error);
+      return null;
     }
   }
 
