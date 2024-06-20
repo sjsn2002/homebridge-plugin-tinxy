@@ -15,26 +15,18 @@
         "type": "string",
         "required": true
       },
-      "devices": {
-        "type": "array",
-        "title": "Devices",
-        "items": {
-          "type": "object",
-          "properties": {
-            "id": {
-              "title": "Device ID",
-              "type": "string",
-              "required": true
-            },
-            "name": {
-              "title": "Device Name",
-              "type": "string",
-              "required": true
-            }
-          }
-        }
+      "apiBaseUrl": {
+        "title": "API Base URL",
+        "type": "string",
+        "default": "https://backend.tinxy.in/v2/devices",
+        "required": true
+      },
+      "debug": {
+        "title": "Enable Debug Logging",
+        "type": "boolean",
+        "default": false
       }
     },
-    "required": ["name", "apiToken", "devices"]
+    "required": ["name", "apiToken", "apiBaseUrl"]
   }
 }
