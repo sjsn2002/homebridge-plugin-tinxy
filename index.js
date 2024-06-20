@@ -1,10 +1,10 @@
 const axios = require('axios');
 
 module.exports = (api) => {
-  api.registerPlatform('HomebridgeTinxyPlatform', HomebridgeTinxyPlatform);
+  api.registerPlatform('HomebridgeTinxy', HomebridgeTinxy);
 };
 
-class HomebridgeTinxyPlatform {
+class HomebridgeTinxy {
   constructor(log, config, api) {
     this.log = log;
     this.config = config;
@@ -48,7 +48,7 @@ class HomebridgeTinxyPlatform {
             this.api.updatePlatformAccessories([platformAccessory]);
           } else {
             this.accessoriesList.push(platformAccessory);
-            this.api.registerPlatformAccessories('homebridge-plugin-tinxy', 'HomebridgeTinxyPlatform', [platformAccessory]);
+            this.api.registerPlatformAccessories('homebridge-plugin-tinxy', 'HomebridgeTinxy', [platformAccessory]);
           }
         });
       });
