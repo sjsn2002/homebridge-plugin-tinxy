@@ -19,7 +19,7 @@
       "apiBaseUrl": {
         "title": "API Base URL",
         "type": "string",
-        "default": "https://backend.tinxy.in/v2/devices",
+        "default": "https://ha-backend.tinxy.in/v2/devices",
         "required": true
       },
       "debug": {
