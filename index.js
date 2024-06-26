@@ -68,7 +68,7 @@ class HomebridgeTinxy {
       this.cachedAccessories.forEach(accessory => {
         const service = accessory.getService(this.api.hap.Service.Switch);
         if (service) {
-          service.getCharacteristic(this.api.hap.Characteristic.On).updateValue(service.getCharacteristic(this.api.hap.Characteristic.On).value);
+          service.getCharacteristic(this.api.hap.Characteristic.On).getValue();
         }
       });
     }, 10000); // 10 seconds
@@ -91,38 +91,46 @@ class TinxyAccessory {
       return;
     }
 
-    this.createAccessory();
+    if (deviceConfig.devices && deviceConfig.devices.length > 0) {
+      deviceConfig.devices.forEach((switchName, index) => {
+        const uuid = this.api.hap.uuid.generate(`${deviceConfig._id}-${index}`);
+        const switchAccessory = this.cachedAccessories.get(uuid) || new this.api.platformAccessory(`${this.name} - ${switchName}`, uuid);
+        this.addService(switchAccessory, switchName, index);
+      });
+    } else {
+      const uuid = this.api.hap.uuid.generate(deviceConfig._id);
+      const singleSwitchAccessory = this.cachedAccessories.get(uuid) || new this.api.platformAccessory(this.name, uuid);
+      this.addService(singleSwitchAccessory, this.name, 0);
+    }
   }
 
-  createAccessory() {
-    const uuid = this.api.hap.uuid.generate(this.deviceConfig._id);
-    const accessory = this.cachedAccessories.get(uuid) || new this.api.platformAccessory(this.name, uuid);
+  addService(accessory, serviceName, index) {
     let service;
 
     if (this.deviceConfig.deviceTypes.includes('Fan')) {
-      service = accessory.getService(this.api.hap.Service.Fanv2) || accessory.addService(this.api.hap.Service.Fanv2, this.name);
+      service = accessory.getService(this.api.hap.Service.Fanv2) || accessory.addService(this.api.hap.Service.Fanv2, serviceName);
 
       service.getCharacteristic(this.api.hap.Characteristic.Active)
-        .onGet(this.handleActiveGet.bind(this))
-        .onSet(this.handleActiveSet.bind(this));
+        .onGet(this.handleActiveGet.bind(this, index))
+        .onSet(this.handleActiveSet.bind(this, index));
     } else if (this.deviceConfig.deviceTypes.some(type => ['Light', 'Bulb', 'LED Bulb'].includes(type))) {
-      service = accessory.getService(this.api.hap.Service.Lightbulb) || accessory.addService(this.api.hap.Service.Lightbulb, this.name);
+      service = accessory.getService(this.api.hap.Service.Lightbulb) || accessory.addService(this.api.hap.Service.Lightbulb, serviceName);
 
       service.getCharacteristic(this.api.hap.Characteristic.On)
-        .onGet(this.handleOnGet.bind(this))
-        .onSet(this.handleOnSet.bind(this));
+        .onGet(this.handleOnGet.bind(this, index))
+        .onSet(this.handleOnSet.bind(this, index));
     } else if (this.deviceConfig.deviceTypes.includes('Socket')) {
-      service = accessory.getService(this.api.hap.Service.Outlet) || accessory.addService(this.api.hap.Service.Outlet, this.name);
+      service = accessory.getService(this.api.hap.Service.Outlet) || accessory.addService(this.api.hap.Service.Outlet, serviceName);
 
       service.getCharacteristic(this.api.hap.Characteristic.On)
-        .onGet(this.handleOnGet.bind(this))
-        .onSet(this.handleOnSet.bind(this));
+        .onGet(this.handleOnGet.bind(this, index))
+        .onSet(this.handleOnSet.bind(this, index));
     } else {
-      service = accessory.getService(this.api.hap.Service.Switch) || accessory.addService(this.api.hap.Service.Switch, this.name);
+      service = accessory.getService(this.api.hap.Service.Switch) || accessory.addService(this.api.hap.Service.Switch, serviceName);
 
       service.getCharacteristic(this.api.hap.Characteristic.On)
-        .onGet(this.handleOnGet.bind(this))
-        .onSet(this.handleOnSet.bind(this));
+        .onGet(this.handleOnGet.bind(this, index))
+        .onSet(this.handleOnSet.bind(this, index));
     }
 
     this.accessories.push(accessory);
@@ -132,11 +140,12 @@ class TinxyAccessory {
     return this.accessories;
   }
 
-  async handleActiveGet() {
+  async handleActiveGet(index) {
     this.log.debug('Triggered GET Active');
 
     try {
       const response = await axios.get(`https://ha-backend.tinxy.in/v2/devices/${this.deviceConfig._id}/state`, {
+        params: { deviceNumber: index + 1 },
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${this.apiToken}`
@@ -150,12 +159,13 @@ class TinxyAccessory {
     }
   }
 
-  async handleActiveSet(value) {
+  async handleActiveSet(value, index) {
     this.log.debug('Triggered SET Active:', value);
 
     try {
       await axios.post(`https://ha-backend.tinxy.in/v2/devices/${this.deviceConfig._id}/toggle`, {
-        request: { state: value === this.api.hap.Characteristic.Active.ACTIVE ? 1 : 0 }
+        request: { state: value === this.api.hap.Characteristic.Active.ACTIVE ? 1 : 0 },
+        deviceNumber: index + 1
       }, {
         headers: {
           'Content-Type': 'application/json',
@@ -168,11 +178,12 @@ class TinxyAccessory {
     }
   }
 
-  async handleOnGet() {
+  async handleOnGet(index) {
     this.log.debug('Triggered GET On');
 
     try {
       const response = await axios.get(`https://ha-backend.tinxy.in/v2/devices/${this.deviceConfig._id}/state`, {
+        params: { deviceNumber: index + 1 },
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${this.apiToken}`
@@ -186,12 +197,13 @@ class TinxyAccessory {
     }
   }
 
-  async handleOnSet(value) {
+  async handleOnSet(value, index) {
     this.log.debug('Triggered SET On:', value);
 
     try {
       await axios.post(`https://ha-backend.tinxy.in/v2/devices/${this.deviceConfig._id}/toggle`, {
-        request: { state: value ? 1 : 0 }
+        request: { state: value ? 1 : 0 },
+        deviceNumber: index + 1
       }, {
         headers: {
           'Content-Type': 'application/json',
