@@ -68,7 +68,10 @@ class HomebridgeTinxy {
   startStatusUpdates() {
     setInterval(() => {
       this.cachedAccessories.forEach(accessory => {
-        accessory.getService(this.api.hap.Service.Switch).getCharacteristic(this.api.hap.Characteristic.On).getValue();
+        const service = accessory.getService(this.api.hap.Service.Switch);
+        if (service) {
+          service.getCharacteristic(this.api.hap.Characteristic.On).getValue();
+        }
       });
     }, 3000); // 3 seconds
   }
@@ -90,11 +93,13 @@ class TinxyAccessory {
 
     if (deviceConfig.devices && deviceConfig.devices.length > 0) {
       deviceConfig.devices.forEach((switchName, index) => {
-        const switchAccessory = new this.api.platformAccessory(`${this.name} - ${switchName}`, this.api.hap.uuid.generate(`${deviceConfig._id}-${index}`));
+        const uuid = this.api.hap.uuid.generate(`${deviceConfig._id}-${index}`);
+        const switchAccessory = new this.api.platformAccessory(`${this.name} - ${switchName}`, uuid);
         this.addService(switchAccessory, switchName, index);
       });
     } else {
-      const singleSwitchAccessory = new this.api.platformAccessory(this.name, this.api.hap.uuid.generate(deviceConfig._id));
+      const uuid = this.api.hap.uuid.generate(deviceConfig._id);
+      const singleSwitchAccessory = new this.api.platformAccessory(this.name, uuid);
       this.addService(singleSwitchAccessory, this.name, 0);
     }
   }
