@@ -118,7 +118,7 @@ class TinxyAccessory {
 
   async setOn(value, callback, switchIndex) {
     try {
-      await axios.post(`https://backend.tinxy.in/v2/devices/${this.deviceConfig._id}/toggle`, {
+      await axios.post(`https://ha-backend.tinxy.in/v2/devices/${this.deviceConfig._id}/toggle`, {
         request: { state: value ? 1 : 0 },
         deviceNumber: switchIndex + 1 // Assuming deviceNumber starts at 1, adjust if necessary
       }, {
@@ -137,7 +137,7 @@ class TinxyAccessory {
 
   async getStatus(callback, switchIndex) {
     try {
-      const response = await axios.get(`https://backend.tinxy.in/v2/devices/${this.deviceConfig._id}/state`, {
+      const response = await axios.get(`https://ha-backend.tinxy.in/v2/devices/${this.deviceConfig._id}/state`, {
         params: { deviceNumber: switchIndex + 1 },
         headers: {
           'Content-Type': 'application/json',
