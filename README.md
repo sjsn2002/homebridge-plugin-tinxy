@@ -42,7 +42,7 @@ Example Config:
 platform: (Required) Always set this to HomebridgeTinxyPlatform.
 name: (Required) The name of your platform. Can be any string.
 apiToken: (Required) Your Tinxy API token.
-apiBaseUrl: (Required) The base URL for the Tinxy API. Should be https://backend.tinxy.in/v2/devices.
+apiBaseUrl: (Required) The base URL for the Tinxy API. Should be https://ha-backend.tinxy.in/v2/devices.
 
 
 ## Features
