@@ -41,19 +41,21 @@ class HomebridgeTinxy {
       if (this.debug) this.log(`Received devices: ${JSON.stringify(devices)}`);
 
       devices.forEach(device => {
-        const accessory = new TinxyAccessory(this.log, device, this.api, this.config.apiToken, this.cachedAccessories, this.debug);
+        const accessory = new TinxyAccessory(this.log, device, this.api, this.config.apiToken);
         const platformAccessories = accessory.getAccessories();
         platformAccessories.forEach(platformAccessory => {
           if (this.cachedAccessories.has(platformAccessory.UUID)) {
+            this.log(`Restoring cached accessory: ${platformAccessory.displayName}`);
             this.api.updatePlatformAccessories([platformAccessory]);
           } else {
+            this.log(`Registering new accessory: ${platformAccessory.displayName}`);
             this.accessoriesList.push(platformAccessory);
             this.api.registerPlatformAccessories('homebridge-plugin-tinxy', 'HomebridgeTinxy', [platformAccessory]);
           }
         });
       });
 
-      if (this.debug) this.log(`Discovered ${devices.length} devices.`);
+      this.log(`Discovered ${devices.length} devices.`);
     } catch (error) {
       this.log('Failed to discover devices:', error);
     }
@@ -66,25 +68,20 @@ class HomebridgeTinxy {
   startStatusUpdates() {
     setInterval(() => {
       this.cachedAccessories.forEach(accessory => {
-        const service = accessory.getService(this.api.hap.Service.Switch);
-        if (service) {
-          service.getCharacteristic(this.api.hap.Characteristic.On).getValue();
-        }
+        accessory.getService(this.api.hap.Service.Switch).getCharacteristic(this.api.hap.Characteristic.On).getValue();
       });
-    }, 10000); // 10 seconds
+    }, 3000); // 3 seconds
   }
 }
 
 class TinxyAccessory {
-  constructor(log, deviceConfig, api, apiToken, cachedAccessories, debug) {
+  constructor(log, deviceConfig, api, apiToken) {
     this.log = log;
     this.deviceConfig = deviceConfig;
     this.api = api;
     this.apiToken = apiToken;
     this.name = deviceConfig.name;
     this.accessories = [];
-    this.cachedAccessories = cachedAccessories;
-    this.debug = debug;
 
     if (!deviceConfig._id) {
       this.log.error('Device ID is missing:', deviceConfig);
@@ -93,13 +90,11 @@ class TinxyAccessory {
 
     if (deviceConfig.devices && deviceConfig.devices.length > 0) {
       deviceConfig.devices.forEach((switchName, index) => {
-        const uuid = this.api.hap.uuid.generate(`${deviceConfig._id}-${index}`);
-        const switchAccessory = this.cachedAccessories.get(uuid) || new this.api.platformAccessory(`${this.name} - ${switchName}`, uuid);
+        const switchAccessory = new this.api.platformAccessory(`${this.name} - ${switchName}`, this.api.hap.uuid.generate(`${deviceConfig._id}-${index}`));
         this.addService(switchAccessory, switchName, index);
       });
     } else {
-      const uuid = this.api.hap.uuid.generate(deviceConfig._id);
-      const singleSwitchAccessory = this.cachedAccessories.get(uuid) || new this.api.platformAccessory(this.name, uuid);
+      const singleSwitchAccessory = new this.api.platformAccessory(this.name, this.api.hap.uuid.generate(deviceConfig._id));
       this.addService(singleSwitchAccessory, this.name, 0);
     }
   }
@@ -109,25 +104,21 @@ class TinxyAccessory {
 
     if (this.deviceConfig.deviceTypes.includes('Fan')) {
       service = accessory.getService(this.api.hap.Service.Fanv2) || accessory.addService(this.api.hap.Service.Fanv2, serviceName);
-
       service.getCharacteristic(this.api.hap.Characteristic.Active)
         .onGet(this.handleActiveGet.bind(this, index))
         .onSet(this.handleActiveSet.bind(this, index));
     } else if (this.deviceConfig.deviceTypes.some(type => ['Light', 'Bulb', 'LED Bulb'].includes(type))) {
       service = accessory.getService(this.api.hap.Service.Lightbulb) || accessory.addService(this.api.hap.Service.Lightbulb, serviceName);
-
       service.getCharacteristic(this.api.hap.Characteristic.On)
         .onGet(this.handleOnGet.bind(this, index))
         .onSet(this.handleOnSet.bind(this, index));
     } else if (this.deviceConfig.deviceTypes.includes('Socket')) {
       service = accessory.getService(this.api.hap.Service.Outlet) || accessory.addService(this.api.hap.Service.Outlet, serviceName);
-
       service.getCharacteristic(this.api.hap.Characteristic.On)
         .onGet(this.handleOnGet.bind(this, index))
         .onSet(this.handleOnSet.bind(this, index));
     } else {
       service = accessory.getService(this.api.hap.Service.Switch) || accessory.addService(this.api.hap.Service.Switch, serviceName);
-
       service.getCharacteristic(this.api.hap.Characteristic.On)
         .onGet(this.handleOnGet.bind(this, index))
         .onSet(this.handleOnSet.bind(this, index));

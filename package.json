@@ -1,6 +1,6 @@
 {
   "name": "homebridge-plugin-tinxy",
-  "version": "0.4.2",
+  "version": "0.4.3",
   "description": "Homebridge plugin for Tinxy devices",
   "main": "index.js",
   "keywords": [
